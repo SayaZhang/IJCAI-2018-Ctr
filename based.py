@@ -46,14 +46,14 @@ def load_data():
     path = './data/'
     
     # 训练集
-    train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
-    #train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    #train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
+    train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
     train['isTrain'] = 1
     train = train.dropna()
 
     # 测试集
-    test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
-    #test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
+    #test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
+    test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
     test['isTrain'] = 0
     
     # 连接
@@ -81,6 +81,8 @@ def oneHot():
     
     # item_category & create item_category dict
     for index,row in df.iterrows():
+        
+        print(index)
         
         item_category_list = [x for x in row['item_category_list'].split(';')]
         item_property_list = [x for x in row['item_property_list'].split(';')]
@@ -224,21 +226,21 @@ def train():
         clf.fit(X_train, y_train)
         
         # predict train
-        y_train_pred = clf.predict(X_train)
+        y_train_pred = clf.predict_proba(X_train)
         
         # evaluate train logLoss
         one_hot = OneHotEncoder(n_values=2, sparse=False)
         y_train = one_hot.fit_transform(np.array([[x] for x in y_train]))
-        y_train_pred = one_hot.fit_transform(np.array([[x] for x in y_train_pred]))
+        y_train_pred = one_hot.fit_transform(np.array([[1-x[0]] for x in y_train_pred]))
         logLoss_train = log_loss(y_train, y_train_pred)
         print("train:", logLoss_train)
         
         # predict validation data
-        y_validate_pred = clf.predict(X_validate)
+        y_validate_pred = clf.predict_proba(X_validate)
         
         # evaluate validate logLoss
         y_validate = one_hot.fit_transform(np.array([[x] for x in y_validate]))
-        y_validate_pred = one_hot.fit_transform(np.array([[x] for x in y_validate_pred]))
+        y_validate_pred = one_hot.fit_transform(np.array([[1-x[0]] for x in y_validate_pred]))
         logLoss_validate = log_loss(y_validate, y_validate_pred)
         print("validate:", logLoss_validate)
         
