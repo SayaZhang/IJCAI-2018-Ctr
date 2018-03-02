@@ -7,7 +7,7 @@ Created on Thur Mar 1 15:16:39 2018
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import cross_val_score, KFold 
+from sklearn.cross_validation import KFold 
 from sklearn.metrics import log_loss
 from sklearn.preprocessing import OneHotEncoder
 #import xgboost as xgb
@@ -198,7 +198,7 @@ def train():
     df = oneHot()
     print('========> start train!')
     
-    # init data set
+    # init dataset
     df_train = df[df['isTrain'] == 1]
     df_test = df[df['isTrain'] == 0] 
     
@@ -210,13 +210,14 @@ def train():
     # 10-fold
     kf = KFold(n=len(df_train), n_folds=10, shuffle=False) 
     kfcount = 0
+    result = []
     for train_index, test_index in kf:
         
         print("\n===========" + str(kfcount) + "===========")
         
         # prepare train data
         X_train, y_train = df_train.loc[train_index, feature], df_train.loc[train_index, 'is_trade']
-        X_test, y_test = df_train.loc[test_index, feature], df_train.loc[test_index, 'is_trade']
+        X_validate, y_validate = df_train.loc[test_index, feature], df_train.loc[test_index, 'is_trade']
        
         # init and train model
         clf = RandomForestClassifier(max_depth=2, random_state=0)
@@ -233,18 +234,27 @@ def train():
         print("train:", logLoss_train)
         
         # predict validation data
-        y_validate_pred = clf.predict(X_test)
+        y_validate_pred = clf.predict(X_validate)
         
         # evaluate validate logLoss
-        y_validate = one_hot.fit_transform(np.array([[x] for x in y_test]))
+        y_validate = one_hot.fit_transform(np.array([[x] for x in y_validate]))
         y_validate_pred = one_hot.fit_transform(np.array([[x] for x in y_validate_pred]))
         logLoss_validate = log_loss(y_validate, y_validate_pred)
-        print("train:", logLoss_validate)
+        print("validate:", logLoss_validate)
+        
+        # predict test data
+        y_pred = clf.predict_proba(df_test.loc[:,feature])
+        result.append([1-x[0] for x in y_pred])
         
         kfcount += 1
         #break
     
-    #df_test['predict'] = [x[0] for x in result]
-    #df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)
+    # build result
+    result = pd.DataFrame(result)
+    pred = []
+    for x in result.columns:
+        pred.append(result[x].mean())
+    df_test['predict'] = pred
+    df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)   
 
 train()
