@@ -7,6 +7,9 @@ Created on Thur Mar 1 15:16:39 2018
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.cross_validation import cross_val_score, KFold 
+from sklearn.metrics import log_loss
+from sklearn.preprocessing import OneHotEncoder
 #import xgboost as xgb
 
 
@@ -44,14 +47,14 @@ def load_data():
     path = './data/'
     
     # 训练集
-    train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
-    #train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    #train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
+    train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
     train['isTrain'] = 1
     train = train.dropna()
 
     # 测试集
-    test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
-    #test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
+    #test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
+    test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
     test['isTrain'] = 0
     
     # 连接
@@ -186,11 +189,6 @@ def logregobj(preds, dtrain):
     hess = preds * (1.0 - preds)
     return grad, hess
 
-def evalerror(preds, dtrain):
-    labels = dtrain.get_label()
-    # return a pair metric_name, result
-    # since preds are margin(before logistic transformation, cutoff at 0)
-    return 'error', float(sum(labels != (preds > 0.0))) / len(labels)
 
 """
 训练
@@ -198,6 +196,7 @@ def evalerror(preds, dtrain):
 def train(): 
     
     df = oneHot()
+    print('========> start train!')
     
     # init data set
     df_train = df[df['isTrain'] == 1]
@@ -208,11 +207,44 @@ def train():
     feature=[x for x in df.columns if x not in UselessFeature]
     df.loc[:,feature].to_csv('feature.csv',index=None)
     
-    # init model
-    clf = RandomForestClassifier(max_depth=2, random_state=0)
-    clf.fit(df_train.loc[:,feature], df_train.loc[:,'is_trade'])
-    result = clf.predict_log_proba(df_test.loc[:,feature])
-    df_test['predict'] = [x[0] for x in result]
-    df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)
+    # 10-fold
+    kf = KFold(n=len(df_train), n_folds=10, shuffle=False) 
+    kfcount = 0
+    for train_index, test_index in kf:
+        
+        print("\n===========" + str(kfcount) + "===========")
+        
+        # prepare train data
+        X_train, y_train = df_train.loc[train_index, feature], df_train.loc[train_index, 'is_trade']
+        X_test, y_test = df_train.loc[test_index, feature], df_train.loc[test_index, 'is_trade']
+       
+        # init and train model
+        clf = RandomForestClassifier(max_depth=2, random_state=0)
+        clf.fit(X_train, y_train)
+        
+        # predict train
+        y_train_pred = clf.predict(X_train)
+        
+        # evaluate train logLoss
+        one_hot = OneHotEncoder(n_values=2, sparse=False)
+        y_train = one_hot.fit_transform(np.array([[x] for x in y_train]))
+        y_train_pred = one_hot.fit_transform(np.array([[x] for x in y_train_pred]))
+        logLoss_train = log_loss(y_train, y_train_pred)
+        print("train:", logLoss_train)
+        
+        # predict validation data
+        y_validate_pred = clf.predict(X_test)
+        
+        # evaluate validate logLoss
+        y_validate = one_hot.fit_transform(np.array([[x] for x in y_test]))
+        y_validate_pred = one_hot.fit_transform(np.array([[x] for x in y_validate_pred]))
+        logLoss_validate = log_loss(y_validate, y_validate_pred)
+        print("train:", logLoss_validate)
+        
+        kfcount += 1
+        #break
+    
+    #df_test['predict'] = [x[0] for x in result]
+    #df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)
 
 train()
