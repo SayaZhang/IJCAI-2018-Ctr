@@ -12,7 +12,6 @@ from sklearn.metrics import log_loss
 from sklearn.preprocessing import OneHotEncoder
 #import xgboost as xgb
 
-
 """
 特征列表
 """
@@ -47,22 +46,20 @@ def load_data():
     path = './data/'
     
     # 训练集
-    #train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
-    train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
     train['isTrain'] = 1
     train = train.dropna()
 
     # 测试集
-    #test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
-    test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
+    test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
     test['isTrain'] = 0
     
     # 连接
     df = pd.concat([train,test]) 
     print("========> Load Data Success!")
     return df
-
-    #return train
 
 """
 one-hot编码处理 
@@ -134,6 +131,7 @@ def oneHot():
             if n not in delete_item_property_list:
                 new[n]=row[n]
         m.append(new)
+    print("  =========> Part 1!")
     
     """
     2. 特征: 类别 ONE-HOT
@@ -157,6 +155,7 @@ def oneHot():
     category.loc[:,singleIntFeature] = category.loc[:,singleIntFeature].astype('str')
     dfCategory = pd.get_dummies(category)
     df = pd.merge(df,dfCategory,on='instance_id')
+    print("  =========> Part 2!")
     
     """
     3. 特征: 浮点数 离散化+OneHot
@@ -175,9 +174,10 @@ def oneHot():
     category = df.loc[:,singleDoubleShopDispersedList]
     category.loc[:,singleDoubleShopDispersed] = category.loc[:,singleDoubleShopDispersed].astype('str')
     dfCategory = pd.get_dummies(category)
-    df = pd.merge(df,dfCategory,on='instance_id')        
-    df = df.fillna(0)
+    df = pd.merge(df,dfCategory,on='instance_id')
+    print("  =========> Part 3!")        
     
+    df = df.fillna(0)    
     print("========> One Hot Success!")
     return df
 
@@ -254,7 +254,7 @@ def train():
     pred = []
     for x in result.columns:
         pred.append(result[x].mean())
-    df_test['predict'] = pred
+    df_test.loc[:, 'predict'] = pred
     df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)   
 
 train()
