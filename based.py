@@ -6,7 +6,6 @@ Created on Thur Mar 1 15:16:39 2018
 """
 import pandas as pd
 import numpy as np
-from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 #import xgboost as xgb
 
@@ -45,22 +44,22 @@ def load_data():
     path = './data/'
     
     # 训练集
-    #train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
-    train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
     train['isTrain'] = 1
     train = train.dropna()
 
     # 测试集
-    #test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
-    test = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
     test['isTrain'] = 0
     
     # 连接
-    df = pd.concat([train,test])    
+    df = pd.concat([train,test]) 
     print("========> Load Data Success!")
     return df
 
-    return train
+    #return train
 
 """
 one-hot编码处理 
@@ -173,10 +172,7 @@ def oneHot():
     category = df.loc[:,singleDoubleShopDispersedList]
     category.loc[:,singleDoubleShopDispersed] = category.loc[:,singleDoubleShopDispersed].astype('str')
     dfCategory = pd.get_dummies(category)
-    df = pd.merge(df,dfCategory,on='instance_id')
-    #for x in doubleFeature:
-        
-    
+    df = pd.merge(df,dfCategory,on='instance_id')        
     df = df.fillna(0)
     
     print("========> One Hot Success!")
@@ -207,14 +203,16 @@ def train():
     df_train = df[df['isTrain'] == 1]
     df_test = df[df['isTrain'] == 0] 
     
-    
     # init feature
     UselessFeature = idList + singleDoubleShopDispersed + singleDoubleShop + singleIntFeature + listItem + unsureList + label
     feature=[x for x in df.columns if x not in UselessFeature]
+    df.loc[:,feature].to_csv('feature.csv',index=None)
     
     # init model
     clf = RandomForestClassifier(max_depth=2, random_state=0)
     clf.fit(df_train.loc[:,feature], df_train.loc[:,'is_trade'])
     result = clf.predict_log_proba(df_test.loc[:,feature])
-    print(result)
+    df_test['predict'] = [x[0] for x in result]
+    df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)
+
 train()
