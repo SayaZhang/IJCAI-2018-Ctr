@@ -7,6 +7,7 @@ Created on Thur Mar 1 15:16:39 2018
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing
+from sklearn.ensemble import RandomForestClassifier
 #import xgboost as xgb
 
 
@@ -139,6 +140,7 @@ def oneHot():
     item_sales_level 
     item_collected_level 
     item_pv_level 
+    item_brand_id
     user_gender_id 
     user_age_level 
     user_occupation_id 
@@ -205,29 +207,14 @@ def train():
     df_train = df[df['isTrain'] == 1]
     df_test = df[df['isTrain'] == 0] 
     
+    
     # init feature
     UselessFeature = idList + singleDoubleShopDispersed + singleDoubleShop + singleIntFeature + listItem + unsureList + label
     feature=[x for x in df.columns if x not in UselessFeature]
-    #print(df.loc[0,feature])
-    '''
-    # preprocessing label
-    lbl = preprocessing.LabelEncoder()
-    lbl.fit(list(df_train['is_trade'].values))
-    df_train.loc[:,'label'] = lbl.transform(list(df_train['is_trade'].values))    
-
-    # init model param   
-    params = {
-        'objective': 'multi:softprob',
-        'eta': 0.1,
-        'max_depth': 9,
-        'eval_metric': 'merror',
-        'seed': 0,
-        'missing': -999,
-        'silent' : 1
-    }
-    watchlist = [(df_test, 'eval'), (df_train, 'train')]
-    num_round = 10
     
-    print(df_train.loc[1,feature]) 
-    '''
+    # init model
+    clf = RandomForestClassifier(max_depth=2, random_state=0)
+    clf.fit(df_train.loc[:,feature], df_train.loc[:,'is_trade'])
+    result = clf.predict_log_proba(df_test.loc[:,feature])
+    print(result)
 train()
