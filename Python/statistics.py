@@ -27,7 +27,7 @@ class statistic(object):
         self.test['isTrain'] = 0
         
         # 连接
-        self.df = pd.concat([self.train, self.test]).reindex()
+        self.df = pd.concat([self.train, self.test])
         print("========> Load Data Success!")    
     
     # 1.数量
@@ -63,16 +63,17 @@ class statistic(object):
             ser = self.df[x]
             #ser.index = self.df['instance_id']
             
-            cats = pd.cut(ser[ser != -1], 10, labels=[1,2,3,4,5,6,7,8,9,10])
+            cats = pd.qcut(ser[ser != -1], 4, duplicates='drop')
+            print(cats.value_counts())
             #print(cats)
             #print(ser[ser != -1])
             #print(ser[ser == -1])
-            ser = pd.concat([cats, ser[ser == -1]]).astype('int')
+            #ser = pd.concat([cats, ser[ser == -1]]).astype('int')
             #print(ser)
             #print(self.df[x])
             #break
-            self.df[x+'_dispersed'] = ser
-        print(self.df.loc[88064,:])
+            #self.df[x+'_dispersed'] = ser
+        #print(self.df.loc[88064,:])
         
 if __name__ =='__main__':
     

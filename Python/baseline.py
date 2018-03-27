@@ -32,9 +32,9 @@ def convert_data(data):
 
 
 if __name__ == "__main__":
-    online = True# 这里用来标记是 线下验证 还是 在线提交
+    online = False# 这里用来标记是 线下验证 还是 在线提交
 
-    data = pd.read_csv('data/round1_ijcai_18_train_20180301.txt', sep=' ')
+    data = pd.read_csv('../data/round1_ijcai_18_train_20180301.txt', sep=' ')
     
     data.drop_duplicates(inplace=True)
     data = convert_data(data)
@@ -44,10 +44,10 @@ if __name__ == "__main__":
         test = data.loc[data.day == 24]  # 暂时先使用第24天作为验证集
     elif online == True:
         train = data.copy()
-        test = pd.read_csv('data/round1_ijcai_18_test_a_20180301.txt', sep=' ')
+        test = pd.read_csv('../data/round1_ijcai_18_test_a_20180301.txt', sep=' ')
         test = convert_data(test)
 
-    features = ['item_id', 'item_brand_id', 'item_city_id', 'item_price_level', 'item_sales_level',
+    features = ['item_id', 'item_brand_id','item_city_id', 'item_price_level', 'item_sales_level',
                 'item_collected_level', 'item_pv_level', 'user_gender_id', 'user_occupation_id',
                 'user_age_level', 'user_star_level', 'user_query_day', 'user_query_day_hour',
                 'context_page_id', 'hour', 'shop_id', 'shop_review_num_level', 'shop_star_level',

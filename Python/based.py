@@ -4,13 +4,12 @@ Created on Thur Mar 1 15:16:39 2018
 
 @author: Sandra
 """
+import time
 import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import KFold 
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import log_loss
-from sklearn.preprocessing import OneHotEncoder
 #import xgboost as xgb
+
 
 """
 特征列表
@@ -33,10 +32,34 @@ singleDoubleShopDispersed = ['shop_review_positive_rate_dispersed','shop_score_s
 idList = ['instance_id','item_id','user_id','context_id','shop_id' ]
 
 # 5. 目前还未用到的特征
-unsureList = ['context_timestamp','predict_category_property']
+unsureList = ['predict_category_property']
 
 # 5 train label标记
 label = ['isTrain', 'is_trade']
+
+# time
+timeFeature = ['context_timestamp','time']
+
+def timestamp_datetime(value):
+    format = '%Y-%m-%d %H:%M:%S'
+    value = time.localtime(value)
+    dt = time.strftime(format, value)
+    return dt
+
+
+def convert_data(data):
+    data['time'] = data.context_timestamp.apply(timestamp_datetime)
+    data['day'] = data.time.apply(lambda x: int(x[8:10]))
+    data['hour'] = data.time.apply(lambda x: int(x[11:13]))
+    user_query_day = data.groupby(['user_id', 'day']).size(
+    ).reset_index().rename(columns={0: 'user_query_day'})
+    data = pd.merge(data, user_query_day, 'left', on=['user_id', 'day'])
+    user_query_day_hour = data.groupby(['user_id', 'day', 'hour']).size().reset_index().rename(
+        columns={0: 'user_query_day_hour'})
+    data = pd.merge(data, user_query_day_hour, 'left',
+                    on=['user_id', 'day', 'hour'])
+
+    return data
 
 """
 读入数据
@@ -46,18 +69,20 @@ def load_data():
     path = './data/'
     
     # 训练集
-    #train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
-    train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    train = pd.read_table(path+'round1_ijcai_18_train_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #train = pd.read_table(path+'sample.txt',encoding='utf8',delim_whitespace=True)
+    train.drop_duplicates(inplace=True)
     train['isTrain'] = 1
     train = train.dropna()
 
     # 测试集
-    #test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
-    test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
+    test = pd.read_table(path+'round1_ijcai_18_test_a_20180301.txt',encoding='utf8',delim_whitespace=True)
+    #test = pd.read_table(path+'test_sample.txt',encoding='utf8',delim_whitespace=True)
     test['isTrain'] = 0
     
     # 连接
     df = pd.concat([train,test]) 
+    df = convert_data(df)
     print("========> Load Data Success!")
     return df
 
@@ -67,14 +92,14 @@ one-hot编码处理
 def oneHot():
     
     df = load_data()
-    dropCount = len(df) * 0.05    
+    #dropCount = 20    
     
     """
     1. 特征: 类别、属性列表 ONE-HOT
     item_category_list
     item_property_list 
 
-    """    
+        
     l=[]
     item_category_dict = {}
     item_property_dict = {}
@@ -125,7 +150,10 @@ def oneHot():
 
     # 过滤
     m=[]
+    count = 0
+    print("============================")
     for row in l:
+        print(count)
         new={}
         for n in row.keys():
             if n not in delete_item_category_list:
@@ -133,7 +161,9 @@ def oneHot():
             if n not in delete_item_property_list:
                 new[n]=row[n]
         m.append(new)
+        count += 1
     print("  =========> Part 1!")
+    """
     
     """
     2. 特征: 类别 ONE-HOT
@@ -151,7 +181,7 @@ def oneHot():
     shop_review_num_level
     shop_star_level
     """  
-    df = pd.DataFrame(m)
+    #df = pd.DataFrame(m)
     singleIntFeatureList = singleIntFeature + ['instance_id']
     category = df.loc[:,singleIntFeatureList]
     category.loc[:,singleIntFeature] = category.loc[:,singleIntFeature].astype('str')
@@ -183,15 +213,6 @@ def oneHot():
     print("========> One Hot Success!")
     return df
 
-# log likelihood loss
-def logregobj(preds, dtrain):
-    labels = dtrain.get_label()
-    preds = 1.0 / (1.0 + np.exp(-preds))
-    grad = preds - labels
-    hess = preds * (1.0 - preds)
-    return grad, hess
-
-
 """
 训练
 """
@@ -205,58 +226,32 @@ def train():
     df_test = df[df['isTrain'] == 0] 
     
     # init feature
-    UselessFeature = idList + singleDoubleShopDispersed + singleDoubleShop + singleIntFeature + listItem + unsureList + label
+    UselessFeature = idList + singleDoubleShopDispersed + singleDoubleShop + singleIntFeature + listItem + unsureList + timeFeature + label
     feature=[x for x in df.columns if x not in UselessFeature]
-    df.loc[:,feature].to_csv('feature.csv',index=None)
+    target = ['is_trade']
+    #df.loc[:,feature].to_csv('feature.csv',index=None)
     
-    # 10-fold
-    kf = KFold(n=len(df_train), n_folds=10, shuffle=False) 
-    kfcount = 0
-    result = []
-    for train_index, test_index in kf:
+    online = False# 这里用来标记是 线下验证 还是 在线提交
+    if online == False:
+        train = df_train.loc[df_train.day < 24]  # 18,19,20,21,22,23,24
+        test = df_train.loc[df_train.day == 24]  # 暂时先使用第24天作为验证集
+    elif online == True:
+        train = df_train.copy()
+        test = df_test  
+
+    if online == False:
+
+        clf = GradientBoostingClassifier(max_leaf_nodes=63, max_depth=7, n_estimators=80)
+        clf.fit(train[feature], train[target])
         
-        print("\n===========" + str(kfcount) + "===========")
+        test['lgb_predict'] = clf.predict_proba(test[feature],)[:, 1]
+        print(log_loss(test[target], test['lgb_predict']))
+    else:
         
-        # prepare train data
-        X_train, y_train = df_train.loc[train_index, feature], df_train.loc[train_index, 'is_trade']
-        X_validate, y_validate = df_train.loc[test_index, feature], df_train.loc[test_index, 'is_trade']
-       
-        # init and train model
-        clf = RandomForestClassifier(max_depth=2, random_state=0)
-        clf.fit(X_train, y_train)
+        clf = GradientBoostingClassifier(max_leaf_nodes=63, max_depth=7, n_estimators=80)
+        clf.fit(train[feature], train[target])
         
-        # predict train
-        y_train_pred = clf.predict_proba(X_train)
-        
-        # evaluate train logLoss
-        one_hot = OneHotEncoder(n_values=2, sparse=False)
-        y_train = one_hot.fit_transform(np.array([[x] for x in y_train]))
-        y_train_pred = one_hot.fit_transform(np.array([[1-x[0]] for x in y_train_pred]))
-        logLoss_train = log_loss(y_train, y_train_pred)
-        print("train:", logLoss_train)
-        
-        # predict validation data
-        y_validate_pred = clf.predict_proba(X_validate)
-        
-        # evaluate validate logLoss
-        y_validate = one_hot.fit_transform(np.array([[x] for x in y_validate]))
-        y_validate_pred = one_hot.fit_transform(np.array([[1-x[0]] for x in y_validate_pred]))
-        logLoss_validate = log_loss(y_validate, y_validate_pred)
-        print("validate:", logLoss_validate)
-        
-        # predict test data
-        y_pred = clf.predict_proba(df_test.loc[:,feature])
-        result.append([1-x[0] for x in y_pred])
-        
-        kfcount += 1
-        #break
-    
-    # build result
-    result = pd.DataFrame(result)
-    pred = []
-    for x in result.columns:
-        pred.append(result[x].mean())
-    df_test.loc[:, 'predict'] = pred
-    df_test[['instance_id','predict']].astype('str').to_csv('result.csv',index=None)   
+        test['predicted_score'] = clf.predict_proba(test[feature])[:, 1]
+        test[['instance_id', 'predicted_score']].to_csv('baseline.csv', index=False,sep=' ')#保存在线提交结果  
 
 train()
