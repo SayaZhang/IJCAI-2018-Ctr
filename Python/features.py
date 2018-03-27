@@ -32,41 +32,39 @@ def load_data():
 def item_history_feature(name):
     
     df = load_data()
-    df = df[df['isTrain'] == 1][['instance_id', name, 'context_timestamp', 'is_trade']]   
+    df = df[['instance_id', name, 'context_timestamp', 'is_trade','isTrain']]   
     df['time'] = pd.to_datetime(df.context_timestamp, unit='s')
     
     count = 0
     data = []
-    for item in df[['instance_id', name, 'time', 'is_trade']].groupby('item_id'):
-        print(count,12035)
+    for item in df[['instance_id', name, 'time', 'is_trade','isTrain']].groupby('item_id'):
+        print(count)
         
-        # 总cvr
-        cvr = len(item[1][item[1]['is_trade'] == 1])/len(item[1])
+        # train 中 cvr
+        train_len = len(item[1][item[1]['isTrain'] == 1])
+        cvr = train_len > 0 and len(item[1][(item[1]['isTrain'] == 1) & (item[1]['is_trade'] == 1)])/train_len or 0
         
         for index,row in item[1].iterrows():
             
-            last_day = row['time'] - datetime.timedelta(days=1)
-            last_hour = row['time'] - datetime.timedelta(hours=1)
-            
+            last_day = row['time'] - datetime.timedelta(days=1)            
             last_day_item = item[1][item[1]['time'] < last_day]
-            last_hour_item = item[1][item[1]['time'] < last_hour]
-            
-            last_day_item_len = len(last_day_item)
-            last_hour_item_len = len(last_hour_item)
-            
+            last_day_item_len = len(last_day_item)           
             last_day_cvr = last_day_item_len > 0 and len(last_day_item[last_day_item['is_trade'] == 1])/last_day_item_len or 0
-            last_hour_cvr = last_hour_item_len > 0 and len(last_hour_item[last_hour_item['is_trade'] == 1])/last_hour_item_len or 0
             
-            data.append([row['instance_id'], cvr, last_hour_cvr, last_day_cvr])
+            data.append([row['instance_id'], cvr, last_day_cvr])
             
         count += 1
         
         #break
     
-    data = pd.DataFrame(data, columns=['instance_id','cvr', 'last_hour_cvr', 'last_day_cvr'])
+    data = pd.DataFrame(data, columns=['instance_id','cvr','last_day_cvr'])
     data.to_csv(path + 'features/' + name + '_history.csv',index=None)
-        
-def item_category_feature():
-    df = load_data()[['instance_id','item_category_list']]
+    
+def date_stat():
+    df = load_data()
+    df['time'] = pd.to_datetime(df.context_timestamp, unit='s')
+    df['date'] = df['time'].apply(lambda x: str(x).split(" ")[0])
+    print(df[df['isTrain'] == 1]['date'].value_counts)
+    print(df[df['isTrain'] == 0]['date'].value_counts)
 
 item_history_feature('item_id')

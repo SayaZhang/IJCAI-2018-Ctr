@@ -16,7 +16,8 @@ import numpy as np
 def gbdt_lr_train(X_train,y_train,X_test,y_test):
 
     # 定义GBDT模型
-    gbdt = GradientBoostingClassifier(n_estimators=40, max_depth=3, verbose=0,max_features=0.5)
+    gbdt = GradientBoostingClassifier(n_estimators=20, max_depth=3, verbose=0, max_features=0.5)
+    #n_estimators=20, max_depth=3, verbose=0, max_features=0.5
 
     # 训练学习
     gbdt.fit(X_train, y_train)
@@ -69,7 +70,7 @@ def gbdt_lr_train(X_train,y_train,X_test,y_test):
 
 def predict(X_train,y_train,X_test,features):
     # 定义GBDT模型
-    gbdt = GradientBoostingClassifier(n_estimators=40, max_depth=3, verbose=0,max_features=0.5)
+    gbdt = GradientBoostingClassifier(n_estimators=20, max_depth=3, verbose=0, max_features=0.5)
 
     # 训练学习
     gbdt.fit(X_train, y_train)
@@ -90,4 +91,4 @@ def predict(X_train,y_train,X_test,features):
     # 预测及AUC评测
     X_test['predicted_score'] = lr.predict_proba(X_trans[train_rows:, :])[:, 1]
     print(X_test['predicted_score'].head(5))
-    X_test[['instance_id', 'predicted_score']].to_csv('baseline.csv', index=False,sep=' ')#保存在线提交结果
+    X_test[['instance_id', 'predicted_score']].to_csv('../baseline.csv', index=False,sep=' ')#保存在线提交结果

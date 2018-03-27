@@ -32,9 +32,15 @@ def convert_data(data):
 
 
 if __name__ == "__main__":
-    online = False# 这里用来标记是 线下验证 还是 在线提交
+    online = True# 这里用来标记是 线下验证 还是 在线提交
+    path = '../Data/'
 
-    data = pd.read_csv('../data/round1_ijcai_18_train_20180301.txt', sep=' ')
+    data = pd.read_csv(path + 'round1_ijcai_18_train_20180301.txt', sep=' ')
+    print('load data success!')
+    item_history_cvr = pd.read_csv(path + 'features/item_id_history.csv')
+    print('load history data success!')    
+    data = pd.merge(data,item_history_cvr,on='instance_id')
+    print('merge history data success!') 
     
     data.drop_duplicates(inplace=True)
     data = convert_data(data)
@@ -45,14 +51,14 @@ if __name__ == "__main__":
     elif online == True:
         train = data.copy()
         test = pd.read_csv('../data/round1_ijcai_18_test_a_20180301.txt', sep=' ')
+        test = pd.merge(test,item_history_cvr,on='instance_id')
         test = convert_data(test)
 
-    features = ['item_id', 'item_brand_id','item_city_id', 'item_price_level', 'item_sales_level',
-                'item_collected_level', 'item_pv_level', 'user_gender_id', 'user_occupation_id',
-                'user_age_level', 'user_star_level', 'user_query_day', 'user_query_day_hour',
-                'context_page_id', 'hour', 'shop_id', 'shop_review_num_level', 'shop_star_level',
-                'shop_review_positive_rate', 'shop_score_service', 'shop_score_delivery', 'shop_score_description',
-                ]
+    features = ['item_id','item_brand_id','item_city_id','shop_id','item_price_level', 'item_sales_level','item_collected_level', 'item_pv_level', 
+                     'user_gender_id','user_occupation_id','user_age_level', 'user_star_level', 'user_query_day', 'user_query_day_hour',
+                     'context_page_id', 'hour', 'shop_review_num_level', 'shop_star_level','shop_review_positive_rate', 
+                     'shop_score_service', 'shop_score_delivery', 'shop_score_description','cvr','last_day_cvr']
+    
     target = ['is_trade']
 
     if online == False:
