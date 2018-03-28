@@ -68,7 +68,7 @@ def gbdt_lr_train(X_train,y_train,X_test,y_test):
     gbdt_lr_test_log_loss2 = log_loss(y_test, y_pred_gbdtlr2)
     print('基于组合特征的LR log_loss: %.5f' % gbdt_lr_test_log_loss2)
 
-def predict(X_train,y_train,X_test,features):
+def predict(X_train,y_train,X_test,features,name):
     # 定义GBDT模型
     gbdt = GradientBoostingClassifier(n_estimators=20, max_depth=3, verbose=0, max_features=0.5)
 
@@ -91,4 +91,5 @@ def predict(X_train,y_train,X_test,features):
     # 预测及AUC评测
     X_test['predicted_score'] = lr.predict_proba(X_trans[train_rows:, :])[:, 1]
     print(X_test['predicted_score'].head(5))
-    X_test[['instance_id', 'predicted_score']].to_csv('../baseline.csv', index=False,sep=' ')#保存在线提交结果
+    print(len(X_test))
+    X_test[['instance_id', 'predicted_score']].to_csv('../baseline_' + name +'.csv', index=False,sep=' ')#保存在线提交结果
