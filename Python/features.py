@@ -7,7 +7,6 @@ Created on Tue Mar 27 12:01:47 2018
 """
 
 import pandas as pd
-import matplotlib.pyplot as plt
 import datetime
 import time
 
