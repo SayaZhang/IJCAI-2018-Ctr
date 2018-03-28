@@ -51,7 +51,7 @@ def item_history_feature(name):
     
     count = 0
     data = []
-    for item in df.groupby('item_id'):
+    for item in df.groupby(name):
         
         item_cvr_dict = {}
         print(count)
@@ -88,4 +88,4 @@ def date_stat():
     df[df['isTrain'] == 1]['date'].value_counts().sort_index().to_csv('../Stat_output/train_time.csv')
     df[df['isTrain'] == 0]['date'].value_counts().sort_index().to_csv('../Stat_output/test_time.csv')
 
-item_history_feature('item_id')
+item_history_feature('shop_id')
