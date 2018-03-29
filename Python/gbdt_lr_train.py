@@ -16,7 +16,7 @@ import numpy as np
 def gbdt_lr_train(train,test,gbdt_features,lr_features,target,name,isOnline):
 
     # 定义GBDT模型
-    gbdt = GradientBoostingClassifier(n_estimators=20, max_depth=3, verbose=0, max_features=0.5)
+    gbdt = GradientBoostingClassifier(n_estimators=20, max_depth=3, verbose=0, max_features=0.3)
     #n_estimators=20, max_depth=3, verbose=0, max_features=0.5
 
     # 训练学习
@@ -28,8 +28,8 @@ def gbdt_lr_train(train,test,gbdt_features,lr_features,target,name,isOnline):
         gbdt_test_log_loss = log_loss(test[target], y_pred_gbdt)
         print('gbdt log_loss: %.5f' % gbdt_test_log_loss)
     else:
-        y_pred_gbdt = gbdt.predict_proba(train[gbdt_features].tail(10000))[:, 1]
-        gbdt_test_log_loss = log_loss(train[target].tail(10000), y_pred_gbdt)
+        y_pred_gbdt = gbdt.predict_proba(train[gbdt_features].tail(57562))[:, 1]
+        gbdt_test_log_loss = log_loss(train[target].tail(57562), y_pred_gbdt)
         print('gbdt log_loss: %.5f' % gbdt_test_log_loss)
 
     # GBDT编码原有特征

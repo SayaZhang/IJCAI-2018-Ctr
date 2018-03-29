@@ -65,19 +65,54 @@ def item_history_feature(name):
         item_cvr_dict[str(dates[0])] = cvr/7       
         # 从第二天开始，得到前一天的cvr 存在dict中
         for i in range(1,len(dates)):
+            print(dates[i])
+            
             last_day = dates[i] - datetime.timedelta(days=1) 
             last_day_item = item[1][item[1]['date_real'] == str(last_day)]
+            print(last_day_item)
+            print('------------------------')
             last_day_item_len = len(last_day_item)
             last_day_cvr = last_day_item_len > 0 and len(last_day_item[last_day_item['is_trade'] == 1])/last_day_item_len or 0
             item_cvr_dict[str(dates[i])] = last_day_cvr      
         
         for index,row in item[1].iterrows():
             data.append([row['instance_id'], row['isTrain'], item_cvr_dict['mean'], item_cvr_dict[row['date_real']]])
-        count += 1
-        #break
         
+        count += 1
+ 
     data = pd.DataFrame(data, columns=['instance_id', 'isTrain', 'cvr', 'last_day_cvr'])
     data.to_csv(path + 'features/' + name + '_history.csv',index=None)
+
+def isPredict():
+    
+    df = load_data()
+    df = df[['instance_id', 'predict_category_property', 'item_category_list', 'item_property_list', 'is_trade', 'isTrain']] 
+    data = []
+    for index, row in df.iterrows():
+        print(index)
+        categorySet = set(row['item_category_list'].split(';'))
+        propertySet = set(row['item_property_list'].split(';'))
+        predicts = row['predict_category_property'].split(';')
+        
+        preCate = []
+        prePro = []
+        for x in predicts:
+            try:
+                tmp = x.split(':')            
+                preCate.append(tmp[0])
+                if tmp[1] != '-1':
+                    prePro.append(tmp[1])
+            except:
+                print(index,x,row)
+        
+        isCategory = len(list(categorySet.intersection(set(preCate))))
+        isProperty = len(list(propertySet.intersection(set(prePro))))
+        
+        data.append([row['instance_id'], row['isTrain'], row['is_trade'], isCategory, isProperty])
+        #break
+    #print(data)
+    data = pd.DataFrame(data, columns=['instance_id', 'isTrain', 'is_trade', 'isCategory', 'isProperty'])
+    data.to_csv(path + 'features/' + 'predict_feature.csv',index=None)
     
 def date_stat():
     df = load_data()
@@ -88,4 +123,5 @@ def date_stat():
     df[df['isTrain'] == 1]['date'].value_counts().sort_index().to_csv('../Stat_output/train_time.csv')
     df[df['isTrain'] == 0]['date'].value_counts().sort_index().to_csv('../Stat_output/test_time.csv')
 
-item_history_feature('shop_id')
+#item_history_feature('item_id')
+isPredict()
