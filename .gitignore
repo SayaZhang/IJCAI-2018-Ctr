@@ -3,6 +3,10 @@
 *.iml
 out/
 gen/
+**/__pycache__/
+**/.ipynb_checkpoints/
 
 .DS_Store
 
+Data/round1_ijcai_18_test_a_20180301.txt
+Data/round1_ijcai_18_train_20180301.txt

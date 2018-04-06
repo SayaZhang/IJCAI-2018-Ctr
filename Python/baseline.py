@@ -90,21 +90,21 @@ def base_process(data, gbdt_features, lr_features, path):
     data = pd.merge(data, predict[['instance_id','isTrain','isCategory', 'isProperty']], on=['instance_id','isTrain'])
     print('Merge predict data success!')
 
-    # load history data
-    item_history_cvr = pd.read_csv(path + 'features/item_id_history.csv')
-    shop_history_cvr = pd.read_csv(path + 'features/shop_id_history.csv')
-    print('Load history data success!') 
-        
-    # merge data with history data
-    data = pd.merge(data, item_history_cvr, on=['instance_id','isTrain'])
-    data = pd.merge(data, shop_history_cvr, on=['instance_id','isTrain'])
-    print('Merge history data success!')  
-
-    cvr = ['shop_cvr']#'shop_last_day_cvr','last_day_cvr','cvr',
-    for x in cvr:        
-        cats = pd.qcut(data[x], 2, labels=[0,1])
-        data[x+'_dispersed'] = cats
-        gbdt_features.append(x+'_dispersed')
+    # # load history data
+    # item_history_cvr = pd.read_csv(path + 'features/item_id_history.csv')
+    # shop_history_cvr = pd.read_csv(path + 'features/shop_id_history.csv')
+    # print('Load history data success!')
+    #
+    # # merge data with history data
+    # data = pd.merge(data, item_history_cvr, on=['instance_id','isTrain'])
+    # data = pd.merge(data, shop_history_cvr, on=['instance_id','isTrain'])
+    # print('Merge history data success!')
+    #
+    # cvr = ['shop_cvr']#'shop_last_day_cvr','last_day_cvr','cvr',
+    # for x in cvr:
+    #     cats = pd.qcut(data[x], 2, labels=[0,1])
+    #     data[x+'_dispersed'] = cats
+    #     gbdt_features.append(x+'_dispersed')
 
     print("  =========> Part 4!") 
 
